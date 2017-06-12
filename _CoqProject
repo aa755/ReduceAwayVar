@@ -1,0 +1,5 @@
+theories/myplug.v
+src/myplug.ml4
+src/myplug.mllib
+-I src
+-R theories myplug
