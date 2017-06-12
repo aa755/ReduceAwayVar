@@ -1,0 +1,10 @@
+/Makefile
+/Makefile.conf
+*.a
+*.cma
+*.cm*
+*.d
+*.aux
+*.vo
+*.glob
+*.o
