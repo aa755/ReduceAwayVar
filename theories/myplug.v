@@ -4,8 +4,8 @@ Require Import Arith.
 
 Myprint plus.
 
-Goal forall A : Prop, A -> A.
+(* Goal forall A : Prop, A -> A.
 Proof.
   myintro A x.
   exact x.
-Qed.
+Qed. *)

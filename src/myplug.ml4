@@ -1,4 +1,4 @@
-open Pretyping
+(* open Pretyping *)
 
 (** In Coq trunk, use the API for plugins, a subset of all the interfaces of Coq. *)   
 open API
@@ -26,14 +26,14 @@ open Genarg
 open Tacticals.New
 open Stdarg
 
-(** Implementing a simple introduction tactic *)   
+(** Implementing a tactic looking for appearances of terms *)   
 (* fun id : _ => _) *)
 
 (** We build "constr_expr" terms and pass them to [refine], i.e. untyped surface syntax *)   
 let underscore = CAst.make (GHole(GoalEvar, IntroAnonymous, None))
 let lambda id = CAst.make (GLambda(Name id, Explicit, underscore, underscore))
 
-(** We build an action in the tactic monad. See Proofview, Tactics.New and Tacticals.New
+(* (** We build an action in the tactic monad. See Proofview, Tactics.New and Tacticals.New
   modules for the basic actions and control structures. *)
 let myintro id : unit tactic =
   (** In the monad, tactics are applied to multiple goals. To do the same in each goal, 
@@ -59,12 +59,12 @@ let myintro id : unit tactic =
 ;;
 
 (** We apply the tactic in sequence when multiple identifiers are given. *)  
-let myintros ids = tclTHENLIST (List.map myintro ids)
+let myintros ids = tclTHENLIST (List.map myintro ids) 
 
 (** Extend the grammar of tactics with a new entry for our [intros]. *)                 
 TACTIC EXTEND myplug_intro
 | [ "myintro" ident_list(ids) ] -> [ myintros ids ]
-END
+END *)
 
 (** Command to print constant bodies associated to a global name *)
 let myprint name =
