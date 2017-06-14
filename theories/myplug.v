@@ -60,3 +60,13 @@ Proof.
   myintro A x.
   exact x.
 Qed. *)
+
+
+(* Checking that this works in sections. *)
+Section X.
+Variable y:nat.
+Detect (fun (x: nat) => x).
+Detect (fun (x: nat) => y).
+Detect (fun (x: nat) => if true then x else y).
+Detect (fun (x: nat) => if false then x else y).
+End X.
