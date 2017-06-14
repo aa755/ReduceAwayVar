@@ -22,6 +22,7 @@ open Decl_kinds
 open Names
 open Proofview
 open Pretyping
+open Reductionops
 open Genarg
 open Tacticals.New
 open Stdarg
@@ -35,7 +36,7 @@ let rec find b x trm =
      b'' is the reduction behaviour in the next step
  *)
   let redB b b' b'' trm = if (b&&b')
-    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_all Evd.empty (EConstr.of_constr trm)))             
+    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_betaiota Evd.empty (EConstr.of_constr trm)))             
     else (b', trm) in
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
@@ -86,10 +87,11 @@ let rec plugin (arg: Term.constr) : bool * Term.constr =
   | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required.")
 ;;
 
+(* Printer.pr_constr *)
 (** TODO: Check how the term can be returned. *)
 let wrapper (s : Term.constr) =
   let (b, t) = plugin s in
-  Feedback.msg_info Pp.(if b then str "The first argument is needed." else str "The first argument may be omitted.")
+  Feedback.msg_info Pp.(if b then (str "The first argument is needed.")  else str "The first argument may be omitted. The reduced term is: " ++ Printer.pr_constr t)
 ;;
 
 VERNAC COMMAND EXTEND Myplug_test
