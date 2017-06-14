@@ -35,7 +35,7 @@ let rec find b x trm =
      b'' is the reduction behaviour in the next step
  *)
   let redB b b' b'' trm = if (b&&b')
-    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_betaiota Evd.empty (EConstr.of_constr trm)))             
+    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_all Evd.empty (EConstr.of_constr trm)))             
     else (b', trm) in
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
