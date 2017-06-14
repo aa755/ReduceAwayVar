@@ -1,7 +1,6 @@
 (* open Pretyping *)
 
 (** In Coq trunk, use the API for plugins, a subset of all the interfaces of Coq. *)   
-open API
 
 (** To use tactics from the Ltac plugin *)   
 open Ltac_plugin   
@@ -35,7 +34,9 @@ let rec find b x trm =
      b'' is the reduction behaviour in the next step
  *)
   let redB b b' b'' trm = if (b&&b')
-    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_betaiota Evd.empty (EConstr.of_constr trm)))             
+    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_all (* or use Redexpr.cbv_vm *) 
+    Environ.empty_env (* Fix! add to this when recursing under binders*) 
+    Evd.empty (EConstr.of_constr trm)))
     else (b', trm) in
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
