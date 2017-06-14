@@ -26,45 +26,84 @@ open Genarg
 open Tacticals.New
 open Stdarg
 
-(** Implementing a tactic looking for appearances of terms *)   
-(* fun id : _ => _) *)
-
-(** We build "constr_expr" terms and pass them to [refine], i.e. untyped surface syntax *)   
-let underscore = CAst.make (GHole(GoalEvar, IntroAnonymous, None))
-let lambda id = CAst.make (GLambda(Name id, Explicit, underscore, underscore))
-
-(* (** We build an action in the tactic monad. See Proofview, Tactics.New and Tacticals.New
-  modules for the basic actions and control structures. *)
-let myintro id : unit tactic =
-  (** In the monad, tactics are applied to multiple goals. To do the same in each goal, 
-      we explicitely [enter] each of them. *)
-  Goal.nf_enter (fun g ->
-  (** Get the current goal's environment and conclusion *)      
-  let env = Goal.env g in
-  let concl = Goal.concl g in
-  (** Use [refine] to give a partial proof term *)
-  Refine.refine (fun sigma ->
-      (** Here we call the typechecker to go from raw syntax to terms. *)
-      ise_pretype_gen (default_inference_flags false)
-                      (** env contains the global environment and local hypotheses *)
-                      env
-                      (** sigma contains the environment of existential variables and
-                       universes *)
-                      sigma
-                      empty_lvar
-                      (** Typing constraint for our lambda abstraction *)
-                      (OfType concl)
-                      (** The partial lambda term, holes will be turned into evars *)
-                      (lambda id)))
+let rec find b x trm =
+  (* First reduces, then tries to find the variable.
+     b describes whether we reduce in this step,
+     b' describes whether we found variables in the subcases,
+     b'' is the reduction behaviour in the next step
+ *)
+  let redB b b' b'' trm = if (b&&b')
+    then find b'' x (EConstr.to_constr Evd.empty (Reductionops.nf_betaiota Evd.empty (EConstr.of_constr trm)))             
+    else (b', trm) in
+  match Term.kind_of_term trm with
+  (* True if the variables correspond, false otherwise. *)  
+  | Term.Rel y -> if (x == y) then (true, Term.mkRel x) else (false, Term.mkRel y) 
+  | Term.Prod (y, s, t) -> (let (b1, n1) = find true x s in
+                                  let (b2, n2) = find true (x +1) t in
+                                  (b1 || b2, Term.mkProd (y, n1, n2) ))
+  | Term.App (s, ts) ->  (let (b1, n1) = find true x s in
+                                   let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find true x t in
+                                                                                 (b ||b2, n2))  false ts in
+                                   redB b (b1 || b2) false (Term.mkApp (n1, n2)))
+  | Term.Lambda (y, t1, t2) -> (let (b1, n1) = find true x t1 in
+                                  let (b2, n2) = find true (x +1) t2 in
+                                  (b1 || b2, Term.mkLambda (y, n1, n2) ))
+  | Term.LetIn (y, s, t, u) ->  (let (b1, n1) = find true x s in
+                                 let (b2, n2) = find true x t in
+                                 let (b3, n3) = find true (x +1) u in
+                                 redB b (b1 || b2 || b3) false (Term.mkLetIn (y, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY *)
+  | Term.Case (i, s, t, us) -> (let (b1, n1) = find true x s in
+                                 let (b2, n2) = find true x t in
+                                 let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find true x u in
+                                                                                 (b ||b3, n3))  false us  in
+                                 redB b (b1 || b2 || b3) false (Term.mkCase (i, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY. Maybe it would be clever to FIRST reduce the term matched on? *)
+  | Term.Proj (y, z) -> redB b true true z
+  | Term.Cast (s, k, t) ->  (let (b1, n1) = find true x s in
+                                  let (b2, n2) = find true x t in
+                                  (b1 || b2, Term.mkCast (n1, k, n2) ))
+  | Term.Fix  ((ys, y), (name_array, type_array, term_array)) -> (
+    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
+                                               (b ||b3, n3))  false type_array in
+    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
+                                               (b ||b3, n3))  false term_array 
+    in redB b (b2 || b3) false (Term.mkFix ((ys, y), (name_array, n2, n3))))
+  (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
+  | Term.CoFix  ((ys, y), (name_array, type_array, term_array)) -> (
+    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
+                                               (b ||b3, n3))  false type_array in
+    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
+                                               (b ||b3, n3))  false term_array 
+    in redB b (b2 || b3) false (Term.mkCoFix ((ys, y), (name_array, n2, n3))))
+  (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
+  | _ -> (false, trm)
 ;;
 
-(** We apply the tactic in sequence when multiple identifiers are given. *)  
-let myintros ids = tclTHENLIST (List.map myintro ids) 
 
-(** Extend the grammar of tactics with a new entry for our [intros]. *)                 
-TACTIC EXTEND myplug_intro
-| [ "myintro" ident_list(ids) ] -> [ myintros ids ]
-END *)
+ (*  | Const     of (Names.Constant.t * 'univs) -- Don't need them?
+     | Ind       of (Names.inductive * 'univs)
+     | Construct of (Names.constructor * 'univs)
+     | Fix       of ('constr, 'types) Term.pfixpoint
+     | CoFix     of ('constr, 'types) Term.pcofixpoint
+  *)
+
+let rec plugin (arg: Term.constr) : bool * Term.constr =
+  match Term.kind_of_term arg with
+  | Term.Lambda (x, _, trm) -> find true 1 trm
+  | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required.")
+;;
+
+(** TODO: Check how the term can be returned. *)
+let wrapper (s : Term.constr) =
+  let (b, t) = plugin s in
+  Feedback.msg_info Pp.(if b then str "The first argument is needed." else str "The first argument may be omitted.")
+;;
+
+VERNAC COMMAND EXTEND Myplug_test
+       CLASSIFIED AS QUERY
+| [ "Detect" constr(c) ] -> [let (evm,env) = Lemmas.get_current_context () in
+                             let c' = Constrintern.interp_constr env evm c in
+                             wrapper (fst c') ]
+                              END
 
 (** Command to print constant bodies associated to a global name *)
 let myprint name =

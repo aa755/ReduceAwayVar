@@ -1,1 +1,3 @@
-PKG coq.API coq.intf
+S ../../coq/*
+B ../../coq/*
+FLG -rectypes
