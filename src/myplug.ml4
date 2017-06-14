@@ -26,6 +26,8 @@ open Genarg
 open Tacticals.New
 open Stdarg
 
+(* Checks whether a variable x appears in a term trm. 
+Flag b true when recursion is allowed, false otherwise. *)
 let rec find b x trm =
   (* First reduces, then tries to find the variable.
      b describes whether we reduce in this step,
@@ -68,23 +70,15 @@ let rec find b x trm =
                                                (b ||b3, n3))  false term_array 
     in redB b (b2 || b3) false (Term.mkFix ((ys, y), (name_array, n2, n3))))
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
-  | Term.CoFix  ((ys, y), (name_array, type_array, term_array)) -> (
+  | Term.CoFix  (y, (name_array, type_array, term_array)) -> (
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in redB b (b2 || b3) false (Term.mkCoFix ((ys, y), (name_array, n2, n3))))
+    in redB b (b2 || b3) false (Term.mkCoFix (y, (name_array, n2, n3))))
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | _ -> (false, trm)
 ;;
-
-
- (*  | Const     of (Names.Constant.t * 'univs) -- Don't need them?
-     | Ind       of (Names.inductive * 'univs)
-     | Construct of (Names.constructor * 'univs)
-     | Fix       of ('constr, 'types) Term.pfixpoint
-     | CoFix     of ('constr, 'types) Term.pcofixpoint
-  *)
 
 let rec plugin (arg: Term.constr) : bool * Term.constr =
   match Term.kind_of_term arg with
