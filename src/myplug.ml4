@@ -119,22 +119,32 @@ let rec find (env: Environ.env) b x trm =
   | _ -> (false, trm))
 ;;
 
-let rec plugin (arg: Term.constr) : bool * Term.constr =
+let rec plugin (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term.constr =
   match Term.kind_of_term arg with
   | Term.Lambda (x, typ, trm) -> 
     let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) (Global.env ()) in
-    find env true 1 trm
+    let (b, body) = find env true 1 trm in
+    (b,x, typ, body)
   | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required. Given a [Lam (x:T) b], the plugin tries
         to come up with a [b'] that is definitionally equal to b and does not mention x")
 ;;
 
 (* Printer.pr_constr *)
-(** TODO: Check how the term can be returned. *)
 let wrapper (s : Term.constr) =
-  let (b, t) = plugin s in
+  let (b,_,_, t) = plugin s in
   Feedback.msg_info 
      Pp.(str (if b then ( "The first argument is needed. The reduced term is")  
         else "The first argument may be omitted. The reduced term is: ")++ Printer.pr_constr t) 
+;;
+
+let declare (s : Term.constr) (name : Names.Id.t) =
+  let (b, x, typ, body) = plugin s in
+  let body= if b then Term.mkLambda (x, typ, body) else body in
+  let _ = 
+      Declare.declare_definition 
+	      ~kind:Decl_kinds.Definition name
+	      (body, Univ.ContextSet.empty) in ()
+
 ;;
 
 (** Plugin declaration, reflected in myplug.v's "Declare ML Module" *)   
@@ -147,3 +157,9 @@ VERNAC COMMAND EXTEND Myplug_test
                              wrapper (fst c') ]
                               END
 
+VERNAC COMMAND EXTEND ReduceAwayLamVar
+       CLASSIFIED AS SIDEFF
+| [ "ReduceAwayLamVar" ident(name) ":=" constr(c)  ] -> [let (evm,env) = Lemmas.get_current_context () in
+                             let c' = Constrintern.interp_constr env evm c in
+                             declare (fst c') name]
+                              END
