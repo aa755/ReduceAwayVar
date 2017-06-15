@@ -23,8 +23,8 @@ Admitted.
 Detect (fun (x: nat) => x).
 Detect (fun (x: nat) => 3).
 Detect (fun (x: nat) => (fun y => y) x). 
-Detect (fun (x: nat) => (fun y => Some y) x). 
-Detect (fun (x: nat) => foo x). 
+Detect (fun (x: nat) => (fun y => Some y) x).
+Detect (fun (x: nat) => foo x). (* need delta reduction *)
 Detect (fun (x: nat) => id x).
 Detect (fun (x : nat) => (fun y => 3) x). 
 Detect (fun (x: nat) => forall (y: nat), x = 3). 
