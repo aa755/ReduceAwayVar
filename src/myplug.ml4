@@ -67,12 +67,13 @@ let rec find (env: Environ.env) b x trm =
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,s)) env in
                                   let (b2, n2) = find env true (x +1) t in
                                   (b1 || b2, Term.mkProd (y, n1, n2) ))
-  | Term.App (s, ts) -> (let (b1, n1) = find env true x s in
-      let n1 = whdAll env n1 in
+  | Term.App (s, ts) -> 
+      let n1 = whdAll env s in
+      let (b1, n1) =  find env true x n1 in
       (*Match on lam and whd on the struct arg if lam is a fix.*)
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2))  false ts in
-                                   redB env b (b1 || b2) false (Term.mkApp (n1, n2)))
+                                   redB env b (b1 || b2) false (Term.mkApp (n1, n2))
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
                                   let (b2, n2) = find env true (x +1) t2 in
