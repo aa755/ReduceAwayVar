@@ -37,6 +37,10 @@ let whdAll env t =
             Evd.empty 
             (EConstr.of_constr t))
 
+let isHeadAConstructor (t:Term.constr) :bool =
+  match Term.kind_of_term t with
+  | Term.Construct _ -> true
+  | _ -> false
 
 (* Checks whether a variable x appears in a term trm. 
 Flag b true when recursion is allowed, false otherwise. *)
@@ -46,7 +50,7 @@ let rec find (env: Environ.env) b x trm =
      b' describes whether we found variables in the subcases,
      b'' is the reduction behaviour in the next step
  *)
-  let redB (env: Environ.env) b b' b'' trm = 
+  let redB (env: Environ.env) b b' b''(* remove *) trm = 
       (*Feedback.msg_info (Printer.pr_constr_env env Evd.empty trm); *)
     if (b&&b')
     then 
@@ -77,21 +81,21 @@ let rec find (env: Environ.env) b x trm =
                                  let (b2, n2) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
                                  let (b3, n3) = find env true (x +1) u in
-                                 redB env b (b1 || b2 || b3) false (Term.mkLetIn (y, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY *)
-  | Term.Case (i, s, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
+                                 redB env b (b1 || b2 || b3) false (Term.mkLetIn (y, n1, n2, n3) ))
+  | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
     (
-    if b then 
-      (let n1 = whdAll env s in
-      let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, n1, t, us)) in
-      find env false x wholeTerm
-      )
+     let discriminee = whdAll env discriminee in
+       if (isHeadAConstructor discriminee)
+       then 
+          let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, t, us)) in
+          find env true x wholeTerm
     else
-    let (b1, n1) = find env true x s in
+    let (b1, n1) = find env true x discriminee in
     let (b2, n2) = find env true x t in
      let (b3, n3) = 
        CArray.fold_map 
         (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3))  false us  in
-        (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY. Maybe it would be clever to FIRST reduce the term matched on? *)
+        (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3) ))
   | Term.Proj (y, z) ->  ( redB env b true true z)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
                                   let (b2, n2) = find env true x t in
