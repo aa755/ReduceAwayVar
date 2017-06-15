@@ -46,9 +46,8 @@ let isHeadAConstructor (t:Term.constr) :bool =
 Flag b true when recursion is allowed, false otherwise. *)
 let rec find (env: Environ.env) b x trm =
   (* First reduces, then tries to find the variable.
-     b describes whether we reduce in this step,
-     b' describes whether we found variables in the subcases,
-     b'' is the reduction behaviour in the next step
+     b describes whether we reduce in this step. this is to avoid looping when no progress is made.
+     b' true iff [x] was found in [trm]
  *)
   let redB (env: Environ.env) b b' trm = 
       (*Feedback.msg_info (Printer.pr_constr_env env Evd.empty trm); *)
@@ -81,23 +80,24 @@ let rec find (env: Environ.env) b x trm =
   | Term.LetIn (y, s, typ, u) ->  (let (b1, n1) = find env true x s in
                                  let (b2, n2) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
-                                 let (b3, n3) = find env true (x +1) u in
+                                 let (b3, n3) = find env true (x+1) u in
                                  redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) ))
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
-    (
-     let discriminee = whdAll env discriminee in
-       if (isHeadAConstructor discriminee)
-       then 
-          let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, t, us)) in
-          find env true x wholeTerm
+    let discriminee = whdAll env discriminee in
+    if (isHeadAConstructor discriminee)
+    then 
+      let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, t, us)) in
+      find env true x wholeTerm
     else
-    let (b1, n1) = find env true x discriminee in
-    let (b2, n2) = find env true x t in
-     let (b3, n3) = 
-       CArray.fold_map 
-        (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3))  false us  in
-        (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3) ))
+      let (b1, n1) = find env true x discriminee in
+      let (b2, n2) = find env true x t in
+      let (b3, n3) = 
+        CArray.fold_map 
+          (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3)) false us  in
+      (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3))
   | Term.Proj (y, z) ->  ( redB env b true z)
+  (*TODO: just ignore [t] and recurse on [s]? Casts can be safely erased in Term.constr because 
+    there is no ambiguity?*)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
                                   let (b2, n2) = find env true x t in
                                   (b1 || b2, Term.mkCast (n1, k, n2) )))
