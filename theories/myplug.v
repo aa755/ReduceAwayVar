@@ -2,8 +2,6 @@ Declare ML Module "myplug".
 
 Require Import Arith.
 
-Myprint plus.
-
 Definition test := True.
 
 Definition id :=  (fun (y: nat) => y). 
