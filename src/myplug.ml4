@@ -79,13 +79,19 @@ let rec find (env: Environ.env) b x trm =
                                  let (b3, n3) = find env true (x +1) u in
                                  redB env b (b1 || b2 || b3) false (Term.mkLetIn (y, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY *)
   | Term.Case (i, s, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
-    (let (b1, n1) = find env true x s in
-    let n1 = whdAll env n1 in
-     let (b2, n2) = find env true x t in
+    (
+    if b then 
+      (let n1 = whdAll env s in
+      let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, n1, t, us)) in
+      find env false x wholeTerm
+      )
+    else
+    let (b1, n1) = find env true x s in
+    let (b2, n2) = find env true x t in
      let (b3, n3) = 
        CArray.fold_map 
         (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3))  false us  in
-       redB env b (b1 || b2 || b3) false (Term.mkCase (i, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY. Maybe it would be clever to FIRST reduce the term matched on? *)
+        (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3) )) (* TODO: THINK ABOUT REDUCTION THEORY. Maybe it would be clever to FIRST reduce the term matched on? *)
   | Term.Proj (y, z) ->  ( redB env b true true z)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
                                   let (b2, n2) = find env true x t in
