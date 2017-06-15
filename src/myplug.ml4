@@ -50,7 +50,7 @@ let rec find (env: Environ.env) b x trm =
      b' describes whether we found variables in the subcases,
      b'' is the reduction behaviour in the next step
  *)
-  let redB (env: Environ.env) b b' b''(* remove *) trm = 
+  let redB (env: Environ.env) b b' trm = 
       (*Feedback.msg_info (Printer.pr_constr_env env Evd.empty trm); *)
     if (b&&b')
     then 
@@ -73,7 +73,7 @@ let rec find (env: Environ.env) b x trm =
       (*Match on lam and whd on the struct arg if lam is a fix.*)
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2))  false ts in
-                                   redB env b (b1 || b2) false (Term.mkApp (n1, n2))
+                                   redB env b (b1 || b2) (Term.mkApp (n1, n2))
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
                                   let (b2, n2) = find env true (x +1) t2 in
@@ -82,7 +82,7 @@ let rec find (env: Environ.env) b x trm =
                                  let (b2, n2) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
                                  let (b3, n3) = find env true (x +1) u in
-                                 redB env b (b1 || b2 || b3) false (Term.mkLetIn (y, n1, n2, n3) ))
+                                 redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) ))
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
     (
      let discriminee = whdAll env discriminee in
@@ -97,23 +97,24 @@ let rec find (env: Environ.env) b x trm =
        CArray.fold_map 
         (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3))  false us  in
         (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3) ))
-  | Term.Proj (y, z) ->  ( redB env b true true z)
+  | Term.Proj (y, z) ->  ( redB env b true z)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
                                   let (b2, n2) = find env true x t in
                                   (b1 || b2, Term.mkCast (n1, k, n2) )))
   | Term.Fix  ((ys, y), (name_array, type_array, term_array)) -> (
+    (* TODO: add binders to typing context. *)
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in redB env b (b2 || b3) false (Term.mkFix ((ys, y), (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkFix ((ys, y), (name_array, n2, n3))))
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | Term.CoFix  (y, (name_array, type_array, term_array)) ->  (
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in redB env b (b2 || b3) false (Term.mkCoFix (y, (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkCoFix (y, (name_array, n2, n3))))
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | _ -> (false, trm))
 ;;
@@ -123,7 +124,8 @@ let rec plugin (arg: Term.constr) : bool * Term.constr =
   | Term.Lambda (x, typ, trm) -> 
     let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) (Global.env ()) in
     find env true 1 trm
-  | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required.")
+  | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required. Given a [Lam (x:T) b], the plugin tries
+        to come up with a [b'] that is definitionally equal to b and does not mention x")
 ;;
 
 (* Printer.pr_constr *)
