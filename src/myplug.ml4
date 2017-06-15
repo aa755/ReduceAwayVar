@@ -24,8 +24,9 @@ open Tacticals.New
 open Stdarg
 
 let redAll env t =
+        
           EConstr.to_constr Evd.empty 
-          (Reductionops.nf_all (* or use Redexpr.cbv_vm *) 
+          (Redexpr.cbv_vm (* or use  Reductionops.nf_all *) 
             env
             Evd.empty 
             (EConstr.of_constr t))
@@ -37,9 +38,14 @@ let rec find (env: Environ.env) b x trm =
      b' describes whether we found variables in the subcases,
      b'' is the reduction behaviour in the next step
  *)
-  let redB (env: Environ.env) b b' b'' trm = if (b&&b')
-    then find env b'' x (redAll env trm)
-      else (b', trm) in
+  let redB (env: Environ.env) b b' b'' trm = 
+      Feedback.msg_info (Printer.pr_constr_env env Evd.empty trm);
+    if (b&&b')
+    then 
+      let trmn= (redAll env trm) in
+      Feedback.msg_info (Printer.pr_constr trmn);
+      find env b'' x trmn
+    else (b', trm) in
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
   | Term.Rel y -> if (x == y) then (true, Term.mkRel x) else (false, Term.mkRel y) 
@@ -50,7 +56,9 @@ let rec find (env: Environ.env) b x trm =
                                    let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2))  false ts in
                                    redB env b (b1 || b2) false (Term.mkApp (n1, n2)))
-  | Term.Lambda (y, t1, t2) -> (let (b1, n1) = find env true x t1 in
+  | Term.Lambda (y, typ, t2) -> (let (b1, n1) = find env true x typ in
+      let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
+
                                   let (b2, n2) = find env true (x +1) t2 in
                                   (b1 || b2, Term.mkLambda (y, n1, n2) ))
   | Term.LetIn (y, s, t, u) ->  (let (b1, n1) = find env true x s in
@@ -86,7 +94,7 @@ let rec find (env: Environ.env) b x trm =
 let rec plugin (arg: Term.constr) : bool * Term.constr =
   match Term.kind_of_term arg with
   | Term.Lambda (x, typ, trm) -> 
-    let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) Environ.empty_env in
+    let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) (Global.env ()) in
     find env true 1 trm
   | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required.")
 ;;
