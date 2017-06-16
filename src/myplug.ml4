@@ -81,7 +81,8 @@ let rec find (env: Environ.env) b x trm =
         | Term.Lambda _ ->
           (true, Term.mkApp (n1,n2))
         | Term.Fix  ((structArgs, mutIndex), _) ->
-            (let structArgIndex = Array.get structArgs mutIndex in
+            let structArgIndex = Array.get structArgs mutIndex in
+            if (Array.length n2 < structArgIndex+1) then (false, Term.mkApp (n1,n2)) else
             let args = Array.mapi
               (fun i bd -> if i=structArgIndex then whdAll env bd else bd) n2 in
             let structArg = Array.get args structArgIndex in
@@ -90,7 +91,7 @@ let rec find (env: Environ.env) b x trm =
               (true , Term.mkApp (n1,args)) (* s? *)
             else 
               (false , Term.mkApp (n1,n2))
-          )
+          
         | _ -> (false, Term.mkApp (n1,n2))
         ) in
         if progress 
