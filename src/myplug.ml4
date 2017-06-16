@@ -82,14 +82,19 @@ let rec find (env: Environ.env) b x trm =
             )
             ts in
             let structArg = Array.get args structArgIndex in
-            (isHeadAConstructor structArg, Term.mkApp (n1,args))
+            if isHeadAConstructor structArg 
+            then 
+              (true , Term.mkApp (n1,args)) (* s? *)
+            else 
+              (false , Term.mkApp (s,ts))
           )
-
-      | _ -> (false, Term.mkApp (n1,ts))
+      | _ -> (false, Term.mkApp (s,ts))
       ) in
       if progress 
       then
-        find env true x (redBetaIotaZeta env newApTerm)
+        let redTerm = (redBetaIotaZeta env newApTerm) in
+        (assert (not (Term.eq_constr redTerm newApTerm)));
+        find env true x redTerm
       else
       let (b1, n1) =  find env true x n1 in
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
