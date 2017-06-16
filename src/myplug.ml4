@@ -69,37 +69,38 @@ let rec find (env: Environ.env) b x trm =
                                   let (b2, n2) = find env true (x +1) t in
                                   (b1 || b2, Term.mkProd (y, n1, n2) ))
   | Term.App (s, ts) -> 
-      (let n1 = whdAll env s in
-      let (progress, newApTerm) =
-      (match Term.kind_of_term n1 with
-      | Term.Lambda (lamVar, lamTyp, lamBody) ->
-          (true, Term.mkApp (n1,ts))
-      | Term.Fix  ((structArgs, mutIndex), _) ->
-          (let structArgIndex = Array.get structArgs mutIndex in
-          let args = Array.mapi
-            (
-              fun i bd -> if i=structArgIndex then whdAll env bd else bd 
-            )
-            ts in
+      (
+      let (b1, n1) =  find env true x s in
+      let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
+                                                                                 (b ||b2, n2)) false ts in
+      let ts = n2 in                                                                           
+      let s = n1 in                                                                           
+      if (not (b1||b2)) then (false, Term.mkApp (n1,n2)) 
+      else
+        let n1 = whdAll env n1 in
+        let (progress, newApTerm) =
+        (match Term.kind_of_term n1 with
+        | Term.Lambda _ ->
+          (true, Term.mkApp (n1,n2))
+        | Term.Fix  ((structArgs, mutIndex), _) ->
+            (let structArgIndex = Array.get structArgs mutIndex in
+            let args = Array.mapi
+              (fun i bd -> if i=structArgIndex then whdAll env bd else bd) ts in
             let structArg = Array.get args structArgIndex in
             if isHeadAConstructor structArg 
             then 
               (true , Term.mkApp (n1,args)) (* s? *)
             else 
-              (false , Term.mkApp (s,ts))
+              (false , Term.mkApp (n1,ts))
           )
-      | _ -> (false, Term.mkApp (s,ts))
-      ) in
-      if progress 
-      then
-        let redTerm = (redBetaIotaZeta env newApTerm) in
-        (assert (not (Term.eq_constr redTerm newApTerm)));
-        find env true x redTerm
-      else
-      let (b1, n1) =  find env true x n1 in
-      let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
-                                                                                 (b ||b2, n2))  false ts in
-                                   ((b1 || b2), Term.mkApp (n1, n2)))
+        | _ -> (false, Term.mkApp (n1,ts))
+        ) in
+        if progress 
+        then
+          (let redTerm = (redBetaIotaZeta env newApTerm) in
+          find env true x redTerm)
+        else
+         ((true, Term.mkApp (n1, n2))))
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
                                   let (b2, n2) = find env true (x +1) t2 in
