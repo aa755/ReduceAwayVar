@@ -73,8 +73,6 @@ let rec find (env: Environ.env) b x trm =
       let (b1, n1) =  find env true x s in
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2)) false ts in
-      let ts = n2 in                                                                           
-      let s = n1 in                                                                           
       if (not (b1||b2)) then (false, Term.mkApp (n1,n2)) 
       else
         let n1 = whdAll env n1 in
@@ -85,15 +83,15 @@ let rec find (env: Environ.env) b x trm =
         | Term.Fix  ((structArgs, mutIndex), _) ->
             (let structArgIndex = Array.get structArgs mutIndex in
             let args = Array.mapi
-              (fun i bd -> if i=structArgIndex then whdAll env bd else bd) ts in
+              (fun i bd -> if i=structArgIndex then whdAll env bd else bd) n2 in
             let structArg = Array.get args structArgIndex in
             if isHeadAConstructor structArg 
             then 
               (true , Term.mkApp (n1,args)) (* s? *)
             else 
-              (false , Term.mkApp (n1,ts))
+              (false , Term.mkApp (n1,n2))
           )
-        | _ -> (false, Term.mkApp (n1,ts))
+        | _ -> (false, Term.mkApp (n1,n2))
         ) in
         if progress 
         then
