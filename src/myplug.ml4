@@ -110,18 +110,20 @@ let rec find (env: Environ.env) b x trm =
                                  let (b3, n3) = find env true (x+1) u in
                                  redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) ))
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
-    let discriminee = whdAll env discriminee in
-    if (isHeadAConstructor discriminee)
-    then 
-      let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, t, us)) in
-      find env true x wholeTerm
-    else
       let (b1, n1) = find env true x discriminee in
       let (b2, n2) = find env true x t in
       let (b3, n3) = 
         CArray.fold_map 
           (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3)) false us  in
-      (b1 || b2 || b3,Term.mkCase (i, n1, n2, n3))
+    if (not (b1 || b2 || b3)) then  (true,Term.mkCase (i, n1, n2, n3))
+    else 
+    let discriminee = whdAll env n1 in
+    if (isHeadAConstructor discriminee)
+    then 
+      let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, n2, n3)) in
+      find env true x wholeTerm
+    else
+      (true, Term.mkCase (i, n1, n2, n3))
   | Term.Proj (y, z) ->  ( redB env b true z)
   (*TODO: just ignore [t] and recurse on [s]? Casts can be safely erased in Term.constr because 
     there is no ambiguity?*)
