@@ -37,6 +37,7 @@ let whdAll env t =
             Evd.empty 
             (EConstr.of_constr t))
 
+(* let whdNthTerm (ts : Term.constr array) (n): bool(*?*)*Term.constr array *)
 let isHeadAConstructor (t:Term.constr) :bool =
   match Term.kind_of_term t with
   | Term.Construct _ -> true
@@ -68,11 +69,32 @@ let rec find (env: Environ.env) b x trm =
                                   (b1 || b2, Term.mkProd (y, n1, n2) ))
   | Term.App (s, ts) -> 
       let n1 = whdAll env s in
-      let (b1, n1) =  find env true x n1 in
       (*Match on lam and whd on the struct arg if lam is a fix.*)
+      let (progress, newApTerm) =
+      (match Term.kind_of_term n1 with
+      | Term.Lambda (lamVar, lamTyp, lamBody) ->
+          (true, Term.mkApp (n1,ts))
+      | Term.Fix  ((structArgs, mutIndex), _) ->
+          (let structArgIndex = Array.get structArgs mutIndex in
+          let args = Array.mapi
+            (
+              fun i bd -> if i=structArgIndex then whdAll env bd else bd 
+            )
+            ts in
+            let structArg = Array.get args structArgIndex in
+            (isHeadAConstructor structArg, Term.mkApp (n1,args))
+          )
+
+      | _ -> (false, Term.mkApp (n1,ts))
+      ) in
+      if progress 
+      then
+        find env true x (redBetaIotaZeta env newApTerm)
+      else
+      let (b1, n1) =  find env true x n1 in
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2))  false ts in
-                                   redB env b (b1 || b2) (Term.mkApp (n1, n2))
+                                   ((b1 || b2), Term.mkApp (n1, n2))
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
                                   let (b2, n2) = find env true (x +1) t2 in
