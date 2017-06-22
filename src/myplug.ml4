@@ -124,7 +124,7 @@ let rec find (env: Environ.env) b x trm =
       find env true x wholeTerm
     else
       (true, Term.mkCase (i, n1, n2, n3))
-  | Term.Proj (y, z) ->  ( redB env b true z)
+  | Term.Proj (y, z) ->  let (b,z)= redB env b true z in (b,Term.mkProj (y, z))
   (*TODO: just ignore [t] and recurse on [s]? Casts can be safely erased in Term.constr because 
     there is no ambiguity?*)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
@@ -148,10 +148,10 @@ let rec find (env: Environ.env) b x trm =
   | _ -> (false, trm))
 ;;
 
-let rec plugin (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term.constr =
+let rec plugin env (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term.constr =
   match Term.kind_of_term arg with
   | Term.Lambda (x, typ, trm) -> 
-    let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) (Global.env ()) in
+    let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) env in
     let (b, body) = find env true 1 trm in
     (b,x, typ, body)
   | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required. Given a [Lam (x:T) b], the plugin tries
@@ -159,15 +159,15 @@ let rec plugin (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term.con
 ;;
 
 (* Printer.pr_constr *)
-let wrapper (s : Term.constr) =
-  let (b,_,_, t) = plugin s in
+let wrapper env (s : Term.constr) =
+  let (b,_,_, t) = plugin env s in
   Feedback.msg_info 
      Pp.(str (if b then ( "The first argument is needed. The reduced term is")  
         else "The first argument may be omitted. The reduced term is: ")++ Printer.pr_constr t) 
 ;;
 
-let declare (s : Term.constr) (name : Names.Id.t) =
-  let (b, x, typ, body) = plugin s in
+let declare env (s : Term.constr) (name : Names.Id.t) =
+  let (b, x, typ, body) = plugin env s in
   let body= if b then Term.mkLambda (x, typ, body) else body in
   let _ = 
       Declare.declare_definition 
@@ -183,12 +183,12 @@ VERNAC COMMAND EXTEND Myplug_test
        CLASSIFIED AS QUERY
 | [ "Detect" constr(c) ] -> [let (evm,env) = Lemmas.get_current_context () in
                              let c' = Constrintern.interp_constr env evm c in
-                             wrapper (fst c') ]
+                             wrapper env (fst c') ]
                               END
 
 VERNAC COMMAND EXTEND ReduceAwayLamVar
        CLASSIFIED AS SIDEFF
 | [ "ReduceAwayLamVar" ident(name) ":=" constr(c)  ] -> [let (evm,env) = Lemmas.get_current_context () in
                              let c' = Constrintern.interp_constr env evm c in
-                             declare (fst c') name]
+                             declare env (fst c') name]
                               END
