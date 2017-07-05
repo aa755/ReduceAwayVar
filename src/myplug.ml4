@@ -41,20 +41,34 @@ let rec isHeadAConstructor (t:Term.constr) :bool =
   | Term.App (f,_) -> isHeadAConstructor f
   | _ -> false
 
-let rec find (env: Environ.env) x trm =
- if Vars.noccurn x trm then (false,trm) else 
+(* Checks whether a variable x appears in a term trm. 
+Flag b true when recursion is allowed, false otherwise. *)
+let rec find (env: Environ.env) b x trm =
+  (* First reduces, then tries to find the variable.
+     b describes whether we reduce in this step. this is to avoid looping when no progress is made.
+     b' true iff [x] was found in [trm]
+ *)
+  let redB (env: Environ.env) b b' trm = 
+      (*Feedback.msg_info (Printer.pr_constr_env env Evd.empty trm); *)
+    if (b&&b')
+    then 
+      let trmn= (redBetaIotaZeta env trm) in
+      (* Feedback.msg_info (Printer.pr_constr trmn); *)
+      find env false x trmn
+    else (b', trm) in
+    if Vars.noccurn x trm then (false,trm) else 
  (
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
   | Term.Rel y -> if (x == y) then (true, Term.mkRel x) else (false, Term.mkRel y) 
-  | Term.Prod (y, s, t) ->(let (b1, n1) = find env x s in
+  | Term.Prod (y, s, t) ->(let (b1, n1) = find env true x s in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,s)) env in
-                                  let (b2, n2) = find env (x +1) t in
+                                  let (b2, n2) = find env true (x +1) t in
                                   (b1 || b2, Term.mkProd (y, n1, n2) ))
   | Term.App (s, ts) -> 
       (
-      let (b1, n1) =  find env  x s in
-      let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env x t in
+      let (b1, n1) =  find env true x s in
+      let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env true x t in
                                                                                  (b ||b2, n2)) false ts in
       if (not (b1||b2)) then (false, Term.mkApp (n1,n2)) 
       else
@@ -80,61 +94,54 @@ let rec find (env: Environ.env) x trm =
         if progress 
         then
           (let redTerm = (redBetaIotaZeta env newApTerm) in
-          find env x redTerm)
+          find env true x redTerm)
         else
          ((true, Term.mkApp (n1, n2))))
-  | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env x typ in
+  | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
-                                  let (b2, n2) = find env (x +1) t2 in
+                                  let (b2, n2) = find env true (x +1) t2 in
                                   (b1 || b2, Term.mkLambda (y, n1, n2) ))
-  | Term.LetIn (y, s, typ, u) ->  
-    ( let (b1, n1) = find env x s in
-      let (b2, n2) = find env x typ in
+  | Term.LetIn (y, s, typ, u) ->  (let (b1, n1) = find env true x s in
+                                 let (b2, n2) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
-      let (b3, n3) = find env (x+1) u in
-      let wholeTerm = Term.mkLetIn (y, n1, n2, n3) in
-      if (not (b1||b2||b3)) 
-      then 
-        (false, wholeTerm)
-      else
-        find env x (redBetaIotaZeta env wholeTerm)
-    )
+                                 let (b3, n3) = find env true (x+1) u in
+                                 redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) ))
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
-      let (b1, n1) = find env x discriminee in
-      let (b2, n2) = find env x t in
+      let (b1, n1) = find env true x discriminee in
+      let (b2, n2) = find env true x t in
       let (b3, n3) = 
         CArray.fold_map 
-          (fun b u -> let (b3, n3) = find env x u in (b ||b3, n3)) false us  in
+          (fun b u -> let (b3, n3) = find env true x u in (b ||b3, n3)) false us  in
     if (not (b1 || b2 || b3)) then  (true,Term.mkCase (i, n1, n2, n3))
     else 
     let discriminee = whdAll env n1 in
     if (isHeadAConstructor discriminee)
     then 
       let wholeTerm =  redBetaIotaZeta env (Term.mkCase (i, discriminee, n2, n3)) in
-      find env x wholeTerm
+      find env true x wholeTerm
     else
       (true, Term.mkCase (i, n1, n2, n3))
-  | Term.Proj (y, z) ->
-    let (b,zn) = find env x z in 
-    (b,Term.mkProj (y, zn))
+  | Term.Proj (y, z) ->  let (b,z)= redB env b true z in (b,Term.mkProj (y, z))
   (*TODO: just ignore [t] and recurse on [s]? Casts can be safely erased in Term.constr because 
     there is no ambiguity?*)
-  | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env x s in
-                                  let (b2, n2) = find env x t in
+  | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
+                                  let (b2, n2) = find env true x t in
                                   (b1 || b2, Term.mkCast (n1, k, n2) )))
   | Term.Fix  ((ys, y), (name_array, type_array, term_array)) -> (
     (* TODO: add binders to typing context. *)
-    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env x u in
+    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true x u in
                                                (b ||b3, n3))  false type_array in
-    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env (x + CArray.length name_array) u in
+    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in (b2 || b3, Term.mkFix ((ys, y), (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkFix ((ys, y), (name_array, n2, n3))))
+  (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | Term.CoFix  (y, (name_array, type_array, term_array)) ->  (
-    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env x u in
+    let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
-    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env (x + CArray.length name_array) u in
+    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in (b2 || b3,Term.mkCoFix (y, (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkCoFix (y, (name_array, n2, n3))))
+  (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | _ -> (false, trm))
 ;;
 
@@ -143,7 +150,7 @@ let rec plugin env (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term
   match Term.kind_of_term arg with
   | Term.Lambda (x, typ, trm) -> 
     let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) env in
-    let (b, body) = find env 1 trm in
+    let (b, body) = find env true 1 trm in
     (b,x, typ, body)
   | _ -> failwith "A lambda is required. Given a [Lam (x:T) b], the plugin tries
         to come up with a [b'] that is definitionally equal to b and does not mention x"
