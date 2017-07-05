@@ -3,7 +3,6 @@
 (** In Coq trunk, use the API for plugins, a subset of all the interfaces of Coq. *)   
 
 (** To use tactics from the Ltac plugin *)   
-open Ltac_plugin   
 
 
 let () = Mltop.add_known_plugin (fun () ->
@@ -25,17 +24,15 @@ open Tacticals.New
 open Stdarg
 
 let redBetaIotaZeta env t =
-          EConstr.to_constr Evd.empty 
           (Reductionops.nf_betaiotazeta (* or use Redexpr.cbv_vm *) 
             (* env *)
             Evd.empty 
-            (EConstr.of_constr t))
+            (t))
 
 let whdAll env t =
-          EConstr.to_constr Evd.empty 
           (Reductionops.whd_all env
             Evd.empty 
-            (EConstr.of_constr t))
+            (t))
 
 (* let whdNthTerm (ts : Term.constr array) (n): bool(*?*)*Term.constr array *)
 let rec isHeadAConstructor (t:Term.constr) :bool =
@@ -141,22 +138,23 @@ let rec find (env: Environ.env) x trm =
   | _ -> (false, trm))
 ;;
 
+
 let rec plugin env (arg: Term.constr) : bool * Names.Name.t * Term.constr * Term.constr =
   match Term.kind_of_term arg with
   | Term.Lambda (x, typ, trm) -> 
     let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (x,typ)) env in
     let (b, body) = find env 1 trm in
     (b,x, typ, body)
-  | _ -> CErrors.user_err ~hdr:"myplug" Pp.(str "A lambda is required. Given a [Lam (x:T) b], the plugin tries
-        to come up with a [b'] that is definitionally equal to b and does not mention x")
+  | _ -> failwith "A lambda is required. Given a [Lam (x:T) b], the plugin tries
+        to come up with a [b'] that is definitionally equal to b and does not mention x"
 ;;
 
 (* Printer.pr_constr *)
 let wrapper env (s : Term.constr) =
-  let (b,_,_, t) = plugin env s in
+  let (b,_,_, tred) = plugin env s in
   Feedback.msg_info 
-     Pp.(str (if b then ( "The first argument is needed. The reduced term is")  
-        else "The first argument may be omitted. The reduced term is: ")++ Printer.pr_constr t) 
+     Pp.(str ((if b then ( "The first argument is needed. The reduced term is")  
+        else "The first argument may be omitted. The reduced term is: "))++ (Printer.pr_constr tred))
 ;;
 
 let declare env (s : Term.constr) (name : Names.Id.t) =
@@ -171,6 +169,7 @@ let declare env (s : Term.constr) (name : Names.Id.t) =
 
 (** Plugin declaration, reflected in myplug.v's "Declare ML Module" *)   
 DECLARE PLUGIN "myplug"
+open Constrarg
 
 VERNAC COMMAND EXTEND Myplug_test
        CLASSIFIED AS QUERY

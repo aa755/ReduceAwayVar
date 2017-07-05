@@ -3,4 +3,3 @@ src/myplug.ml4
 src/myplug.mllib
 -I src
 -R theories myplug
--bypass-API
