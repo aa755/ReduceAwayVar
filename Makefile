@@ -4,7 +4,7 @@ all: Makefile.coq
 	$(MAKE) -f Makefile.coq
 	make install
 	rm theories/myplug.vo
-	make -f Makefile.coq theories/myplug.vo > test.vlog
+	make -f Makefile.coq theories/myplug.vo > test.log
 
 
 
