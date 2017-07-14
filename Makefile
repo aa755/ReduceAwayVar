@@ -1,5 +1,11 @@
-test.log: Makefile.coq
-	$(MAKE) -f Makefile.coq > test.log
+
+all: Makefile.coq
+	$(MAKE) -f Makefile.coq
+	make install
+	rm theories/myplug.vo
+	make -f Makefile.coq theories/myplug.vo > test.vlog
+
+
 
 Makefile.coq : _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq

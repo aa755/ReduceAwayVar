@@ -1,5 +1,7 @@
 make[1]: Entering directory '/home/abhishek/parametricity/example-plugin'
+COQDEP src/myplug.mllib
 CAMLDEP -pp src/myplug.ml4
+COQDEP theories/myplug.v
 CAMLC -pp -c src/myplug.ml4
 CAMLC -a -o src/myplug.cma
 CAMLOPT -pp -c src/myplug.ml4
