@@ -93,8 +93,9 @@ let rec find (env: Environ.env) x trm =
   | Term.LetIn (y, s, typ, u) ->  
     ( let (b1, n1) = find env x s in
       let (b2, n2) = find env x typ in
-      let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
-      let (b3, n3) = find env (x+1) u in
+      let (b3, n3) = 
+        let envb = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
+        find envb (x+1) u in
       let wholeTerm = Term.mkLetIn (y, n1, n2, n3) in
       if (not (b1||b2||b3)) 
       then 
