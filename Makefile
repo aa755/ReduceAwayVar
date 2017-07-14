@@ -1,5 +1,6 @@
 
 all: Makefile.coq
+	make -f Makefile.coq clean
 	$(MAKE) -f Makefile.coq
 	make install
 	rm theories/myplug.vo
