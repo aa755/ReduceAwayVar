@@ -35,6 +35,10 @@ Detect (fun (x: nat) => forall (y: nat), y = 3).
 Detect (fun (x : nat) => let y := 3 in x).
 Detect (fun (x : nat) => let y := 3 in y).
 Detect (fun (x : nat) => let y := 3 in x + y).
+(*Wrong! : The first argument may be omitted. The reduced term is: 6 *)
+Eval vm_compute in ((fun (x : nat) => let y := 3 in x + y)).
+
+
 Detect (fun (x : nat) => let y := x + 2 in y).
 Detect (fun (x: nat) => match x with |0 => 2 |S x => 3 end).
 Detect (fun (x: nat) => match 2 with |0 => 2 |S x => 3 end). 

@@ -1,12 +1,4 @@
 make[1]: Entering directory '/home/abhishek/parametricity/example-plugin'
-COQDEP src/myplug.mllib
-CAMLDEP -pp src/myplug.ml4
-COQDEP theories/myplug.v
-CAMLC -pp -c src/myplug.ml4
-CAMLC -a -o src/myplug.cma
-CAMLOPT -pp -c src/myplug.ml4
-CAMLOPT -a -o src/myplug.cmxa
-CAMLOPT -shared -o src/myplug.cmxs
 COQC theories/myplug.v
 The first argument is needed. The reduced term is_UNBOUND_REL_1
 The first argument may be omitted. The reduced term is: 3
