@@ -54,7 +54,7 @@ let rec find (env: Environ.env) b x trm =
     then 
       let trmn= (redBetaIotaZeta env trm) in
       (* Feedback.msg_info (Printer.pr_constr trmn); *)
-      find env false x trmn
+      find env false x trmn (* this is the only place where the 2nd arg to find is false *)
     else (b', trm) in
     if Vars.noccurn x trm then (false,trm) else 
  (
@@ -72,7 +72,7 @@ let rec find (env: Environ.env) b x trm =
                                                                                  (b ||b2, n2)) false ts in
       if (not (b1||b2)) then (false, Term.mkApp (n1,n2)) 
       else
-        let n1 = whdAll env n1 in
+        let n1 = whdAll env n1 in (* do a recursive call again on n1? or check if it is in whd first?*)
         let (progress, newApTerm) =
         (match Term.kind_of_term n1 with
         | Term.Lambda _ ->
@@ -105,7 +105,7 @@ let rec find (env: Environ.env) b x trm =
                                  let (b2, n2) = find env true x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
                                  let (b3, n3) = find env true (x+1) u in
-                                 redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) ))
+                                 redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) )) (* redB --> redBetaIotaZeta?*)
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
       let (b1, n1) = find env true x discriminee in
       let (b2, n2) = find env true x t in
@@ -121,7 +121,7 @@ let rec find (env: Environ.env) b x trm =
       find env true x wholeTerm
     else
       (true, Term.mkCase (i, n1, n2, n3))
-  | Term.Proj (y, z) ->  let (b,z)= redB env b true z in (b,Term.mkProj (y, z))
+  | Term.Proj (y, z) ->  let (b,z)= redB env b true z in (b,Term.mkProj (y, z)) (* fail on this clause for now, because it is not used?*)
   (*TODO: just ignore [t] and recurse on [s]? Casts can be safely erased in Term.constr because 
     there is no ambiguity?*)
   | Term.Cast (s, k, t) -> ( (let (b1, n1) = find env true x s in
@@ -133,14 +133,14 @@ let rec find (env: Environ.env) b x trm =
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in redB env b (b2 || b3) (Term.mkFix ((ys, y), (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkFix ((ys, y), (name_array, n2, n3)))) (* redB --> redBetaIotaZeta?*)
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | Term.CoFix  (y, (name_array, type_array, term_array)) ->  (
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
-    in redB env b (b2 || b3) (Term.mkCoFix (y, (name_array, n2, n3))))
+    in redB env b (b2 || b3) (Term.mkCoFix (y, (name_array, n2, n3)))) (* redB --> redBetaIotaZeta?*)
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
   | _ -> (false, trm))
 ;;
