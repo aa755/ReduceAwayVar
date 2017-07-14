@@ -57,7 +57,6 @@ let rec find (env: Environ.env) b x trm =
       find env false x trmn (* this is the only place where the 2nd arg to find is false *)
     else (b', trm) in
     if Vars.noccurn x trm then (false,trm) else 
- (
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
   | Term.Rel y -> if (x == y) then (true, Term.mkRel x) else (false, Term.mkRel y) 
@@ -135,14 +134,14 @@ let rec find (env: Environ.env) b x trm =
                                                (b ||b3, n3))  false term_array 
     in redB env b (b2 || b3) (Term.mkFix ((ys, y), (name_array, n2, n3)))) (* redB --> redBetaIotaZeta?*)
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
-  | Term.CoFix  (y, (name_array, type_array, term_array)) ->  (
+  | Term.CoFix  (y, (name_array, type_array, term_array)) ->
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env true (x + CArray.length name_array) u in
-                                               (b ||b3, n3))  false term_array 
-    in redB env b (b2 || b3) (Term.mkCoFix (y, (name_array, n2, n3)))) (* redB --> redBetaIotaZeta?*)
+                                                      (b ||b3, n3))  false term_array  in 
+                                               (b2 || b3, redBetaIotaZeta env (Term.mkCoFix (y, (name_array, n2, n3))))
   (* TODO: THINK ABOUT REDUTION BEHAVIOUR. *)                                                                
-  | _ -> (false, trm))
+  | _ -> (false, trm)
 ;;
 
 
