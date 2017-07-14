@@ -102,8 +102,9 @@ let rec find (env: Environ.env) b x trm =
                                   (b1 || b2, Term.mkLambda (y, n1, n2) ))
   | Term.LetIn (y, s, typ, u) ->  (let (b1, n1) = find env true x s in
                                  let (b2, n2) = find env true x typ in
-      let env = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
-                                 let (b3, n3) = find env true (x+1) u in
+                                 let (b3, n3) = 
+                                   let envb = Environ.push_rel (Context.Rel.Declaration.LocalDef (y,s,typ)) env in
+                                   find envb true (x+1) u in
                                  redB env b (b1 || b2 || b3)  (Term.mkLetIn (y, n1, n2, n3) )) (* redB --> redBetaIotaZeta?*)
   | Term.Case (i, discriminee, t, us) -> (*the branches are lambdas. so no need to add to the typing context*) 
       let (b1, n1) = find env true x discriminee in

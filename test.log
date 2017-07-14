@@ -17,7 +17,21 @@ The first argument may be omitted. The reduced term is:
 (forall y : nat, y = 3)
 The first argument is needed. The reduced term is_UNBOUND_REL_1
 The first argument may be omitted. The reduced term is: (let y := 3 in y)
-The first argument may be omitted. The reduced term is: 6
+The first argument is needed. The reduced term is((fix
+                                                 add 
+                                                 (n m : nat) {struct n} :
+                                                 nat :=
+                                                 match n with
+                                                 | 0 => m
+                                                 | S p => S (add p m)
+                                                 end) _UNBOUND_REL_1 3)
+     = fun x : nat =>
+       (fix Ffix (x0 x1 : nat) {struct x0} : nat :=
+          match x0 with
+          | 0 => x1
+          | S x2 => S (Ffix x2 x1)
+          end) x 3
+     : nat -> nat
 The first argument is needed. The reduced term is((fix
                                                  add 
                                                  (n m : nat) {struct n} :
