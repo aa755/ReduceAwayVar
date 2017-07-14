@@ -1,0 +1,138 @@
+make[1]: Entering directory '/home/abhishek/parametricity/example-plugin'
+COQDEP src/myplug.mllib
+CAMLDEP -pp src/myplug.ml4
+COQDEP theories/myplug.v
+CAMLC -pp -c src/myplug.ml4
+CAMLC -a -o src/myplug.cma
+CAMLOPT -pp -c src/myplug.ml4
+CAMLOPT -a -o src/myplug.cmxa
+CAMLOPT -shared -o src/myplug.cmxs
+COQC theories/myplug.v
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+The first argument may be omitted. The reduced term is: 3
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+red = fun x : nat => x
+     : nat -> nat
+
+Argument scope is [nat_scope]
+red2 = 3
+     : nat
+The first argument is needed. The reduced term is(Some _UNBOUND_REL_1)
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+The first argument may be omitted. The reduced term is: 3
+The first argument is needed. The reduced term is(nat -> _UNBOUND_REL_2 = 3)
+The first argument may be omitted. The reduced term is: 
+(forall y : nat, y = 3)
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+The first argument may be omitted. The reduced term is: (let y := 3 in y)
+The first argument may be omitted. The reduced term is: 6
+The first argument is needed. The reduced term is((fix
+                                                 add 
+                                                 (n m : nat) {struct n} :
+                                                 nat :=
+                                                 match n with
+                                                 | 0 => m
+                                                 | S p => S (add p m)
+                                                 end) _UNBOUND_REL_1 2)
+The first argument is needed. The reduced term ismatch _UNBOUND_REL_1 with
+                                                 | 0 => 2
+                                                 | S _ => 3
+                                                 end
+The first argument may be omitted. The reduced term is: 
+match 2 with
+| 0 => 2
+| S _ => 3
+end
+The first argument is needed. The reduced term ismatch 2 with
+                                                 | 0 => _UNBOUND_REL_1
+                                                 | S _ => _UNBOUND_REL_2
+                                                 end
+The first argument is needed. The reduced term is(fun y : nat =>
+                                                 match y with
+                                                 | 0 => _UNBOUND_REL_2
+                                                 | S _ => 2
+                                                 end)
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+The first argument may be omitted. The reduced term is: 3
+The first argument is needed. The reduced term is(fix
+                                                 f 
+                                                 (m n o : nat) {struct m} :
+                                                 nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S _ => _UNBOUND_REL_6
+                                                 end)
+The first argument is needed. The reduced term is(fix
+                                                 f 
+                                                 (m n o : nat)
+                                                 (p : type _UNBOUND_REL_5)
+                                                 {struct m} : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S _ => 0
+                                                 end)
+The first argument may be omitted. The reduced term is: 
+(fix f (n : nat) : nat := match n with
+                          | 0 => 0
+                          | S n0 => g n0
+                          end
+ with g (n : nat) : nat := match n with
+                           | 0 => 0
+                           | S _ => 0
+                           end
+ with h (n : nat) : nat := match n with
+                           | 0 => 0
+                           | S _ => 0
+                           end
+ for f)
+The first argument is needed. The reduced term is(fix f 
+                                                 (n : nat) : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S n0 => g n0
+                                                 end
+                                                 with g 
+                                                 (n : nat) : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S _ => 0
+                                                 end
+                                                 with h 
+                                                 (n : nat) : nat :=
+                                                 match n with
+                                                 | 0 => _UNBOUND_REL_5
+                                                 | S _ => 0
+                                                 end
+                                                 for f)
+The first argument is needed. The reduced term is(fix f 
+                                                 (n : nat) : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S n0 => h n0
+                                                 end
+                                                 with
+                                                 g 
+                                                 (n : nat)
+                                                 (z : type _UNBOUND_REL_5)
+                                                 {struct n} : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S _ => 0
+                                                 end
+                                                 with h 
+                                                 (n : nat) : nat :=
+                                                 match n with
+                                                 | 0 => 0
+                                                 | S _ => 0
+                                                 end
+                                                 for f)
+The first argument may be omitted. The reduced term is: 0
+The first argument is needed. The reduced term is_UNBOUND_REL_1
+The first argument may be omitted. The reduced term is: y
+The first argument is needed. The reduced term is(if true
+                                                 then _UNBOUND_REL_1
+                                                 else y)
+The first argument is needed. The reduced term is(if false
+                                                 then _UNBOUND_REL_1
+                                                 else y)
+make[1]: Leaving directory '/home/abhishek/parametricity/example-plugin'
