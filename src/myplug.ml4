@@ -46,7 +46,7 @@ let rec find (env: Environ.env) x trm =
  (
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
-  | Term.Rel y -> if (x == y) then (true, Term.mkRel x) else (false, Term.mkRel y) 
+  | Term.Rel y -> (x == y, Term.mkRel y) 
   | Term.Prod (y, s, t) ->(let (b1, n1) = find env x s in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,s)) env in
                                   let (b2, n2) = find env (x +1) t in
