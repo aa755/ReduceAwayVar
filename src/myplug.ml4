@@ -52,37 +52,36 @@ let rec find (env: Environ.env) x trm =
                                   let (b2, n2) = find env (x +1) t in
                                   (b1 || b2, Term.mkProd (y, n1, n2) ))
   | Term.App (s, ts) -> 
-      (
-      let (b1, n1) =  find env  x s in
+      let (b1, fr) =  find env  x s in
       let (b2, n2) = CArray.fold_map (fun b t -> let (b2, n2) = find env x t in
                                                                                  (b ||b2, n2)) false ts in
-      if (not (b1||b2)) then (false, Term.mkApp (n1,n2)) 
+      if (not (b1||b2)) then (false, Term.mkApp (fr,n2)) 
       else
-        let n1 = whdAll env n1 in
+        let fhd = whdAll env fr in
         let (progress, newApTerm) =
-        (match Term.kind_of_term n1 with
+        (match Term.kind_of_term fhd with
         | Term.Lambda _ ->
-          (true, Term.mkApp (n1,n2))
+          (true, Term.mkApp (fhd,n2))
         | Term.Fix  ((structArgs, mutIndex), _) ->
             let structArgIndex = Array.get structArgs mutIndex in
-            if (Array.length n2 < structArgIndex+1) then (false, Term.mkApp (n1,n2)) else
+            if (Array.length n2 < structArgIndex+1) then (false, Term.mkApp (fhd,n2)) else
             let args = Array.mapi
               (fun i bd -> if i=structArgIndex then whdAll env bd else bd) n2 in
             let structArg = Array.get args structArgIndex in
             if isHeadAConstructor structArg 
             then 
-              (true , Term.mkApp (n1,args)) (* s? *)
+              (true , Term.mkApp (fhd,args)) (* fhd --> fr? *)
             else 
-              (false , Term.mkApp (n1,n2))
+              (false , Term.mkApp (fhd,n2))
           
-        | _ -> (false, Term.mkApp (n1,n2))
+        | _ -> (false, Term.mkApp (fhd,n2)) (* fhd --> fr? *)
         ) in
         if progress 
         then
           (let redTerm = (redBetaIotaZeta env newApTerm) in
           find env x redTerm)
         else
-         ((true, Term.mkApp (n1, n2))))
+         (true, newApTerm)
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
                                   let (b2, n2) = find env (x +1) t2 in
