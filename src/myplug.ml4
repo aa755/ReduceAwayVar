@@ -41,12 +41,12 @@ let rec isHeadAConstructor (t:Term.constr) :bool =
   | Term.App (f,_) -> isHeadAConstructor f
   | _ -> false
 
-let rec find (env: Environ.env) x trm =
+let rec find (env: Environ.env) (x:int (*list?*)) trm =
  if Vars.noccurn x trm then (false,trm) else 
  (
   match Term.kind_of_term trm with
   (* True if the variables correspond, false otherwise. *)  
-  | Term.Rel y -> (x == y, Term.mkRel y) 
+  | Term.Rel y -> (x == y, Term.mkRel y) (* List.in *)
   | Term.Prod (y, s, t) ->(let (b1, n1) = find env x s in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,s)) env in
                                   let (b2, n2) = find env (x +1) t in
@@ -84,7 +84,7 @@ let rec find (env: Environ.env) x trm =
          (true, newApTerm)
   | Term.Lambda (y, typ, t2) ->(let (b1, n1) = find env x typ in
       let env = Environ.push_rel (Context.Rel.Declaration.LocalAssum (y,typ)) env in
-                                  let (b2, n2) = find env (x +1) t2 in
+                                  let (b2, n2) = find env (x +1) t2 in (*list.map (+1)*)
                                   (b1 || b2, Term.mkLambda (y, n1, n2) ))
   | Term.LetIn (y, s, typ, u) ->  
     ( let (b1, n1) = find env x s in
@@ -168,7 +168,7 @@ let declare env (s : Term.constr) (name : Names.Id.t) =
 ;;
 
 (** Plugin declaration, reflected in myplug.v's "Declare ML Module" *)   
-DECLARE PLUGIN "myplug"
+DECLARE PLUGIN "myplug" (* TODO: myplug --> ReduceAwayVar*)
 open Constrarg
 
 VERNAC COMMAND EXTEND Myplug_test
