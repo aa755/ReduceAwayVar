@@ -1,5 +1,5 @@
 make[1]: Entering directory '/home/abhishek/parametricity/example-plugin'
-COQC theories/ReduceAwayVar.v
+COQC theories/test.v
 The first argument is needed. The reduced term is_UNBOUND_REL_1
 The first argument may be omitted. The reduced term is: 3
 The first argument is needed. The reduced term is_UNBOUND_REL_1

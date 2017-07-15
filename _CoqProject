@@ -1,4 +1,5 @@
 theories/ReduceAwayVar.v
+theories/test.v
 src/reduceawayvar.ml4
 src/ReduceAwayVar.mllib
 -I src
