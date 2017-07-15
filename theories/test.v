@@ -1,4 +1,4 @@
-Require Import myplug.
+Require Import ReduceAwayVar.
 
 Goal forall A, A -> A.
 Proof.

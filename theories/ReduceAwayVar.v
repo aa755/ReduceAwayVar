@@ -1,4 +1,4 @@
-Declare ML Module "myplug".
+Declare ML Module "ReduceAwayVar".
 
 Require Import Arith.
 

@@ -168,7 +168,7 @@ let declare env (s : Term.constr) (name : Names.Id.t) =
 ;;
 
 (** Plugin declaration, reflected in myplug.v's "Declare ML Module" *)   
-DECLARE PLUGIN "myplug" (* TODO: myplug --> ReduceAwayVar*)
+DECLARE PLUGIN "ReduceAwayVar"
 open Constrarg
 
 VERNAC COMMAND EXTEND Myplug_test
