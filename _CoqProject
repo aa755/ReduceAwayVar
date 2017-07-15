@@ -1,5 +1,5 @@
-theories/myplug.v
-src/myplug.ml4
-src/myplug.mllib
+theories/ReduceAwayVar.v
+src/ReduceAwayVar.ml4
+src/ReduceAwayVar.mllib
 -I src
--R theories myplug
+-R theories ReduceAwayVar

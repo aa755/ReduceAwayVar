@@ -3,8 +3,8 @@ all: Makefile.coq
 	make -f Makefile.coq clean
 	$(MAKE) -f Makefile.coq
 	make install
-	rm theories/myplug.vo
-	make -f Makefile.coq theories/myplug.vo > test.log
+	rm theories/ReduceAwayVar.vo
+	make -f Makefile.coq theories/ReduceAwayVar.vo > test.log
 
 
 

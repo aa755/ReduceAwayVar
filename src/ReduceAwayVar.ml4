@@ -6,8 +6,8 @@
 
 
 let () = Mltop.add_known_plugin (fun () ->
-  Flags.if_verbose Feedback.msg_info Pp.(str"myplug 1.0 at your service"))
-  "myplug"
+  Flags.if_verbose Feedback.msg_info Pp.(str"ReduceAwayVar 1.0 at your service"))
+  "ReduceAwayVar"
 ;;
 
 open Glob_term
@@ -167,11 +167,11 @@ let declare env (s : Term.constr) (name : Names.Id.t) =
 
 ;;
 
-(** Plugin declaration, reflected in myplug.v's "Declare ML Module" *)   
+(** Plugin declaration, reflected in ReduceAwayVar.v's "Declare ML Module" *)   
 DECLARE PLUGIN "ReduceAwayVar"
 open Constrarg
 
-VERNAC COMMAND EXTEND Myplug_test
+VERNAC COMMAND EXTEND ReduceAwayVar_test
        CLASSIFIED AS QUERY
 | [ "Detect" constr(c) ] -> [let (evm,env) = Lemmas.get_current_context () in
                              let c' = Constrintern.interp_constr env evm c in
