@@ -20,3 +20,6 @@ The result will be defined as `defName`.
 
 For an example invokation, see
 https://github.com/aa755/ReduceAwayVar/blob/coq86/theories/test.v#L24
+
+# Authors:
+Kathrin Stark and Abhishek Anand (with the help of the Coq team at the Coq implementors workshop)
