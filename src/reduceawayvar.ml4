@@ -134,7 +134,9 @@ let rec find (env: Environ.env) (x:int (*list?*)) trm =
   | Term.CoFix  (y, (name_array, type_array, term_array)) ->  (
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env x u in
                                                (b ||b3, n3))  false type_array in
-    let (b3, n3) = CArray.fold_map (fun b u -> let (b3, n3) = find env (x + CArray.length name_array) u in
+    let (b3, n3) = 
+      let envn = Environ.push_rec_types (name_array, type_array, term_array) env in
+      CArray.fold_map (fun b u -> let (b3, n3) = find envn (x + CArray.length name_array) u in
                                                (b ||b3, n3))  false term_array 
     in (b2 || b3,Term.mkCoFix (y, (name_array, n2, n3))))
   | _ -> (false, trm))
