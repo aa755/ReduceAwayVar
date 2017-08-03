@@ -123,7 +123,6 @@ let rec find (env: Environ.env) (x:int (*list?*)) trm =
                                   let (b2, n2) = find env x t in
                                   (b1 || b2, Term.mkCast (n1, k, n2) )))
   | Term.Fix  ((ys, y), (name_array, type_array, term_array)) -> (
-    (* TODO: add binders to typing context. *)
     let (b2, n2) = CArray.fold_map (fun b u -> let (b3, n3) = find env x u in
                                                (b ||b3, n3))  false type_array in
     let (b3, n3) = 
