@@ -44,7 +44,7 @@ Detect (fun (x: nat) => match 2 with |0 => 2 |S x => 3 end).
 Detect (fun (x: nat) => match 2 with |0 => x |S y => x end). 
 Detect (fun (x: nat) (y: nat) => match y with |0 => x |S y => 2 end). 
 Detect (fun (x : nat) => field F x).
-Detect (fun (x : nat) => field G x). (* Seems not to reduce. Check. *)
+Detect (fun (x : nat) => field G x).
 Detect (fun (x : nat) => fix f (m n o : nat) := match n with 0 => 0 | S n => id x end). 
 Detect (fun (x : nat) => fix f (m n o : nat) (p : type x) := match n with 0 => 0 | S n => 0 end).
 Detect (fun (x : nat) => fix f n := match n with 0 => 0 | S n => g n end
