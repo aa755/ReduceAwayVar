@@ -10,6 +10,7 @@ make install
 This plugin defines the vernacular command `ReduceAwayLamVar`, which is invoked as follows:
 
 ````
+Require Import ReduceAwayVar.ReduceAwayVar.
 ReduceAwayLamVar defName := term.
 ````
 
